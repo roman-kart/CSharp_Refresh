@@ -1,0 +1,45 @@
+/*
+	aggregate tables
+*/
+
+BEGIN;
+CREATE TABLE total_day_consumption(
+  	user_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  	
+	barcode_code text NOT NULL,
+  	barcode_kind barcode_kind_names NOT NULL,
+  
+  	cost positive_numeric,
+  	currency varchar(3),
+  	quantity positive_numeric,
+  
+  	create_date timestamptz NOT NULL DEFAULT now(),
+  	PRIMARY KEY(user_id, barcode_code, barcode_kind, currency, create_date)
+);
+END;
+
+BEGIN;
+CREATE TABLE total_day_purchase(
+  	user_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  	
+	barcode_code text NOT NULL,
+  	barcode_kind barcode_kind_names NOT NULL,
+  
+  	cost positive_numeric,
+  	currency varchar(3),
+  	quantity positive_numeric,
+  
+  	create_date timestamptz NOT NULL DEFAULT now(),
+  	PRIMARY KEY(user_id, barcode_code, barcode_kind, currency, create_date)
+);
+END;
+
+BEGIN;
+CREATE TABLE total_month_shops(
+  	user_id uuid NOT NULL DEFAULT gen_random_uuid(),
+	shop_name text NOT NULL,
+  	count_of_orders int NOT NULL,
+  	create_date date NOT NULL DEFAULT now(),
+  	PRIMARY KEY(user_id, shop_name, create_date)
+);
+END;

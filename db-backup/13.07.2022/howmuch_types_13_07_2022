@@ -1,0 +1,72 @@
+/*
+	pcs - piece,
+    g - gramm,
+    ml - milliliter
+*/
+
+BEGIN;
+
+CREATE TYPE units_of_measuremen AS ENUM(
+	'pcs',
+  	'g',
+  	'ml'
+);
+
+CREATE TYPE product_type AS ENUM(
+	'food_and_chem',
+  	'electronics',
+  	'for_house',
+  	'transport',
+  	'medicines',
+  	'vacation',
+  	'other'
+);
+
+CREATE TYPE consumtoion_type_name AS ENUM(
+	'lost',
+	'trash',
+	'expired',
+	'sell',
+	'purpose',
+	'help'
+);
+
+END;
+
+
+
+
+
+BEGIN;
+
+CREATE DOMAIN positive_numeric AS numeric(10, 3)
+CHECK(
+	VALUE >= 0
+);
+
+END;
+
+
+
+
+
+BEGIN;
+
+CREATE TYPE barcode_kind_names AS ENUM (
+	'EAN13',
+  	'EAN8',
+  	'CUSTOM'
+);
+
+END;
+
+
+
+BEGIN;
+
+CREATE DOMAIN energy_value AS numeric(6, 3)
+CHECK(
+	VALUE BETWEEN 0 AND 100
+);
+
+END;
