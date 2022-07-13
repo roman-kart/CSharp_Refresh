@@ -1,0 +1,91 @@
+/*
+	product table
+*/
+
+BEGIN;
+
+CREATE TABLE products (
+	barcode barcode_info NOT NULL,
+  	description text,
+  	proteins energy_value,
+  	fats energy_value,
+  	carbohydrates energy_value,
+  	calories numeric(6, 3),
+  	composition jsonb,
+  	type product_type NOT NULL,
+  	uom units_of_measuremen NOT NULL,
+  	quantity positive_numeric NOT NULL,
+  	user_id uuid NOT NULL,
+ 
+  	CHECK (proteins + fats + carbohydrates BETWEEN 0 AND 100),
+  
+  	CHECK (calories >= 0),
+  
+  	PRIMARY KEY (barcode, user_id)
+);
+
+END;
+
+
+
+BEGIN;
+CREATE INDEX ON products(barcode);
+END;
+
+
+
+BEGIN;
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+END;
+
+
+
+
+BEGIN;
+CREATE TABLE purchases(
+	id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+  	user_id uuid NOT NULL,
+  	shop_name text,
+  	modify_date timestamptz NOT NULL DEFAULT now(),
+  	PRIMARY KEY(id, user_id)
+);
+END;
+
+BEGIN;
+CREATE TABLE consumption(
+	id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+  	user_id uuid NOT NULL,
+  	type consumtoion_type_name,
+  	modify_date timestamptz NOT NULL DEFAULT now(),
+  	PRIMARY KEY(id, user_id)
+);
+END;
+
+
+BEGIN;
+CREATE TABLE purchases_detail(
+	id uuid NOT NULL DEFAULT gen_random_uuid(),
+  	purchase_id uuid REFERENCES purchases(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  
+  	barcode barcode_info,
+  	price positive_numeric,
+  	currency varchar(3),
+  	quantity positive_numeric,
+  
+  	PRIMARY KEY(id, purchase_id)
+);
+END;
+
+BEGIN;
+CREATE TABLE consumption_detail(
+	id uuid NOT NULL DEFAULT gen_random_uuid(),
+  	consumption_id uuid REFERENCES consumption(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  	
+  	barcode barcode_info,
+  	cost positive_numeric,
+  	currency varchar(3),
+  	quantity positive_numeric,
+  
+  	PRIMARY KEY(id, consumption_id)
+);
+END;

@@ -1,0 +1,377 @@
+/*
+	triggers
+*/
+
+BEGIN;
+
+CREATE FUNCTION increment_or_create_shop_on_month(
+  user_id_val uuid, 
+  shop_name_val text,
+  count_of_orders_val int,
+  create_date_val date
+)
+RETURNS void
+AS $BORDER$
+  DECLARE
+  	count_of_orders_init INT = 0;
+  BEGIN
+	LOOP
+    	UPDATE
+        	total_month_shops tms
+        SET count_of_orders = CASE 
+             	WHEN count_of_orders + count_of_orders_val >= 0  THEN count_of_orders + count_of_orders_val
+                ELSE 0
+        	END
+        WHERE 
+        	tms.user_id = user_id_val
+            AND tms.shop_name = shop_name_val
+            AND EXTRACT(MONTH FROM tms.create_date) = EXTRACT(MONTH FROM create_date_val);
+           
+       	EXIT WHEN FOUND;
+        
+        IF count_of_orders_val >= 0 THEN
+        	count_of_orders_init = count_of_orders_val;
+        END IF;
+        
+        BEGIN
+        	INSERT INTO 
+            	total_month_shops (
+                  user_id, 
+                  shop_name, 
+                  count_of_orders, 
+                  create_date
+                ) 
+            VALUES(
+              user_id_val, 
+              shop_name_val, 
+              count_of_orders_init, 
+              create_date_val
+            );
+            EXIT;
+            EXCEPTION
+            	WHEN unique_violation THEN
+                	CONTINUE;
+        END;
+    END LOOP;
+  END;
+$BORDER$
+LANGUAGE plpgsql;
+
+END;
+
+
+
+
+BEGIN;
+CREATE FUNCTION update_count_of_shops()
+RETURNS trigger
+AS $BORDER$
+  BEGIN
+	CASE TG_OP 
+    	WHEN 'INSERT' THEN
+        	PERFORM increment_or_create_shop_on_month(NEW.user_id, NEW.shop_name, 1, NEW.modify_date::date);
+        WHEN 'UPDATE' THEN
+        	PERFORM increment_or_create_shop_on_month(OLD.user_id, OLD.shop_name, -1, OLD.modify_date::date);
+            PERFORM increment_or_create_shop_on_month(NEW.user_id, NEW.shop_name, 1, NEW.modify_date::date);
+        WHEN 'DELETE' THEN
+        	PERFORM increment_or_create_shop_on_month(OLD.user_id, OLD.shop_name, -1, OLD.modify_date::date);
+    END CASE;
+    CASE TG_OP 
+    	WHEN 'INSERT', 'UPDATE' THEN
+        	RETURN NEW;
+        WHEN 'DELETE' THEN
+        	RETURN OLD;
+    END CASE;
+  END;
+$BORDER$
+LANGUAGE plpgsql;
+END;
+
+BEGIN;
+CREATE TRIGGER purchases_update_count_of_shops
+AFTER INSERT OR UPDATE OR DELETE ON purchases
+FOR EACH ROW EXECUTE PROCEDURE update_count_of_shops();
+END;
+
+
+
+
+
+
+
+
+
+
+BEGIN;
+
+CREATE FUNCTION update_or_create_total_day_consumption(
+  user_id_val uuid, 
+  barcode_code_val text,
+  barcode_kind_val barcode_kind_names,
+  cost_val numeric(10, 3),
+  currency_val varchar(3),
+  quantity_val numeric(10, 3),
+  create_date_val date
+)
+RETURNS void
+AS $BORDER$
+  DECLARE
+  	cost_init numeric(10, 3) = 0;
+  	quantity_init numeric(10, 3) = 0;
+  BEGIN
+	LOOP
+    	UPDATE
+        	total_day_consumption tdc
+        SET cost = CASE 
+             	WHEN cost + cost_val >= 0  THEN cost + cost_val
+                ELSE 0
+        	END,
+        	quantity = CASE
+        		WHEN quantity + quantity_val >= 0 THEN quantity + quantity_val
+                ELSE 0
+        	END
+        WHERE 
+        	user_id = user_id_val
+            AND barcode_code = barcode_code_val
+            AND barcode_kind = barcode_kind_val
+            AND currency = currency_val
+            AND EXTRACT(MONTH FROM create_date) = EXTRACT(MONTH FROM create_date_val);
+           
+       	EXIT WHEN FOUND;
+        
+        IF cost_val >= 0 THEN
+        	cost_init = cost_val;
+        END IF;
+        
+        IF quantity_val >= 0 THEN
+        	quantity_init = quantity_val;
+        END IF;
+        
+        BEGIN
+        	INSERT INTO 
+            	total_day_consumption (
+                  user_id, 
+                  barcode_code,
+                  barcode_kind,
+                  cost,
+                  currency,
+                  quantity,
+                  create_date
+                ) 
+            VALUES(
+              user_id_val, 
+              barcode_code_val,
+              barcode_kind_val,
+              cost_val,
+              currency_val,
+              quantity_val,
+              create_date_val
+            );
+            EXIT;
+            EXCEPTION
+            	WHEN unique_violation THEN
+                	CONTINUE;
+        END;
+    END LOOP;
+  END;
+$BORDER$
+LANGUAGE plpgsql;
+
+END;
+
+BEGIN;
+CREATE FUNCTION cud_total_day_consumption()
+RETURNS trigger
+AS $BORDER$
+  DECLARE
+  	old_user_id uuid;  
+  	new_user_id uuid;
+    
+    old_create_date date;
+    new_create_date date;
+  BEGIN
+	CASE TG_OP 
+    	WHEN 'INSERT' THEN
+        	SELECT user_id FROM consumption c WHERE c.id = NEW.consumption_id INTO STRICT new_user_id;
+        	SELECT modify_date FROM consumption c WHERE c.id = NEW.consumption_id INTO STRICT new_create_date;
+            PERFORM update_or_create_total_day_consumption(new_user_id, NEW.barcode_code, NEW.barcode_kind, NEW.cost, NEW.currency, NEW.quantity, new_create_date);
+        WHEN 'UPDATE' THEN
+        	SELECT user_id FROM consumption c WHERE c.id = NEW.consumption_id INTO STRICT new_user_id;
+        	SELECT user_id FROM consumption c WHERE c.id = OLD.consumption_id INTO STRICT old_user_id;
+            SELECT modify_date FROM consumption c WHERE c.id = NEW.consumption_id INTO STRICT new_create_date;
+            SELECT modify_date FROM consumption c WHERE c.id = OLD.consumption_id INTO STRICT old_create_date;
+        
+        	PERFORM update_or_create_total_day_consumption(new_user_id, NEW.barcode_code, NEW.barcode_kind, NEW.cost, NEW.currency, NEW.quantity, new_create_date);
+        	PERFORM update_or_create_total_day_consumption(old_user_id, OLD.barcode_code, OLD.barcode_kind, - OLD.cost, OLD.currency, - OLD.quantity, old_create_date);
+        WHEN 'DELETE' THEN
+        	SELECT user_id FROM consumption c WHERE c.id = OLD.consumption_id INTO STRICT old_user_id;
+            SELECT modify_date FROM consumption c WHERE c.id = OLD.consumption_id INTO STRICT old_create_date;
+        	PERFORM update_or_create_total_day_consumption(old_user_id, OLD.barcode_code, OLD.barcode_kind, - OLD.cost, OLD.currency, - OLD.quantity, old_create_date);
+    END CASE;
+    CASE TG_OP 
+    	WHEN 'INSERT', 'UPDATE' THEN
+        	RETURN NEW;
+        WHEN 'DELETE' THEN
+        	RETURN OLD;
+    END CASE;
+  END;
+$BORDER$
+LANGUAGE plpgsql;
+END;
+
+BEGIN;
+CREATE TRIGGER consumption_detail_update_totat_day_consumption
+AFTER INSERT OR UPDATE OR DELETE ON consumption_detail
+FOR EACH ROW EXECUTE PROCEDURE cud_total_day_consumption();
+END;
+
+
+
+
+
+
+
+
+
+BEGIN;
+
+CREATE FUNCTION update_or_create_total_day_purchase(
+  user_id_val uuid, 
+  barcode_code_val text,
+  barcode_kind_val barcode_kind_names,
+  cost_val numeric(10, 3),
+  currency_val varchar(3),
+  quantity_val numeric(10, 3),
+  create_date_val date
+)
+RETURNS void
+AS $BORDER$
+  DECLARE
+  	cost_init numeric(10, 3) = 0;
+  	quantity_init numeric(10, 3) = 0;
+  BEGIN
+	LOOP
+    	UPDATE
+        	total_day_purchase tdc
+        SET price = CASE 
+             	WHEN price + cost_val >= 0  THEN price + cost_val
+                ELSE 0
+        	END,
+        	quantity = CASE
+        		WHEN quantity + quantity_val >= 0 THEN quantity + quantity_val
+                ELSE 0
+        	END
+        WHERE 
+        	user_id = user_id_val
+            AND barcode_code = barcode_code_val
+            AND barcode_kind = barcode_kind_val
+            AND currency = currency_val
+            AND EXTRACT(MONTH FROM create_date) = EXTRACT(MONTH FROM create_date_val);
+           
+       	EXIT WHEN FOUND;
+        
+        IF cost_val >= 0 THEN
+        	cost_init = cost_val;
+        END IF;
+        
+        IF quantity_val >= 0 THEN
+        	quantity_init = quantity_val;
+        END IF;
+        
+        BEGIN
+        	INSERT INTO 
+            	total_day_purchase (
+                  user_id, 
+                  barcode_code,
+                  barcode_kind,
+                  price,
+                  currency,
+                  quantity,
+                  create_date
+                ) 
+            VALUES(
+              user_id_val, 
+              barcode_code_val,
+              barcode_kind_val,
+              cost_val,
+              currency_val,
+              quantity_val,
+              create_date_val
+            );
+            EXIT;
+            EXCEPTION
+            	WHEN unique_violation THEN
+                	CONTINUE;
+        END;
+    END LOOP;
+  END;
+$BORDER$
+LANGUAGE plpgsql;
+
+END;
+
+BEGIN;
+CREATE FUNCTION cud_total_day_purchase()
+RETURNS trigger
+AS $BORDER$
+  DECLARE
+  	old_user_id uuid;  
+  	new_user_id uuid;
+    
+    old_create_date date;
+    new_create_date date;
+  BEGIN
+	CASE TG_OP 
+    	WHEN 'INSERT' THEN
+        	SELECT user_id FROM purchases c WHERE c.id = NEW.purchase_id INTO STRICT new_user_id;
+        	SELECT modify_date FROM purchases c WHERE c.id = NEW.purchase_id INTO STRICT new_create_date;
+            PERFORM update_or_create_total_day_purchase(new_user_id, NEW.barcode_code, NEW.barcode_kind, NEW.price, NEW.currency, NEW.quantity, new_create_date);
+        WHEN 'UPDATE' THEN
+        	SELECT user_id FROM purchases c WHERE c.id = NEW.purchase_id INTO STRICT new_user_id;
+        	SELECT user_id FROM purchases c WHERE c.id = OLD.purchase_id INTO STRICT old_user_id;
+            SELECT modify_date FROM purchases c WHERE c.id = NEW.purchase_id INTO STRICT new_create_date;
+            SELECT modify_date FROM purchases c WHERE c.id = OLD.purchase_id INTO STRICT old_create_date;
+        
+        	PERFORM update_or_create_total_day_purchase(new_user_id, NEW.barcode_code, NEW.barcode_kind, NEW.price, NEW.currency, NEW.quantity, new_create_date);
+        	PERFORM update_or_create_total_day_purchase(old_user_id, OLD.barcode_code, OLD.barcode_kind, - OLD.price, OLD.currency, - OLD.quantity, old_create_date);
+        WHEN 'DELETE' THEN
+        	SELECT user_id FROM purchases c WHERE c.id = OLD.purchase_id INTO STRICT old_user_id;
+            SELECT modify_date FROM purchases c WHERE c.id = OLD.purchase_id INTO STRICT old_create_date;
+        	PERFORM update_or_create_total_day_purchase(old_user_id, OLD.barcode_code, OLD.barcode_kind, - OLD.price, OLD.currency, - OLD.quantity, old_create_date);
+    END CASE;
+    CASE TG_OP 
+    	WHEN 'INSERT', 'UPDATE' THEN
+        	RETURN NEW;
+        WHEN 'DELETE' THEN
+        	RETURN OLD;
+    END CASE;
+  END;
+$BORDER$
+LANGUAGE plpgsql;
+END;
+
+BEGIN;
+CREATE TRIGGER purchases_detail_update_totat_day_purchase
+AFTER INSERT OR UPDATE OR DELETE ON purchases_detail
+FOR EACH ROW EXECUTE PROCEDURE cud_total_day_purchase();
+END;
+
+
+
+
+
+
+
+
+CREATE FUNCTION ()
+RETURNS trigger
+AS $BORDER$
+  DECLARE
+  BEGIN
+	
+  END;
+$BORDER$
+LANGUAGE plpgsql;
+
+
+

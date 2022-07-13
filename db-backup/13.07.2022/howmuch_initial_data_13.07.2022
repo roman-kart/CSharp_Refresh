@@ -1,0 +1,194 @@
+/*
+	init data
+*/
+
+BEGIN;
+
+INSERT INTO products VALUES 
+(
+	'54491472',
+  	'EAN8',
+  	'908bfa28-cd79-4a0f-a1a0-7f900d04c3bd'::uuid,
+  	'Напиток безалкогольный газированный ТМ Coca-Cola 0,5л п/б'::varchar,
+  	'Вода Coca-Cola газированная 0.5л. Пейте охлаждённым. Хранить в темном, сухом и прохладном месте.',
+  	0,
+  	0,
+  	10.6,
+  	42,
+  	$${"version" : "0.0.1", "composition" : "Вода, сахар, диоксид углерода, краситель (сахарный колер IV), регулятор кислотности (орто-фосфорная кислота), натуральные ароматизаторы, кофеин. Общие сахара 10,6г"}$$::jsonb,
+  	'food_and_chem',
+  	'ml',
+  	500,
+  	NULL
+);
+
+END;
+
+BEGIN;
+
+INSERT INTO products VALUES 
+(
+	'9S7-16R612-219',
+  	'CUSTOM',
+  	'908bfa28-cd79-4a0f-a1a0-7f900d04c3bd'::uuid,
+  	'Ноутбук MSI GF63 Thin 11UC-219XRU'::varchar,
+  	'ThinИгровой ноутбук MSI GF63 оснащен качественным 15.6-дюймовым экраном, мощным процессором Intel Core i5 11400H (Tiger Lake) 2.7 ГГц, имеет великолепную систему охлаждения, отличную видеокарту NVIDIA GeForce® RTX 3050 для ноутбуков. Модель MSI GF63 интересна для пользователей как часто играющих за ноутбуком, так и работающих с видеомонтажом. Игровые ноутбуки MSI GF63 популярны среди покупателей благодаря широкому выбору конфигураций, высочайшему качеству техники и приемлемой цене.',
+  	NULL,
+  	NULL,
+  	NULL,
+  	NULL,
+  	NULL,
+  	'electronics',
+  	'pcs',
+  	1,
+  	NULL
+);
+
+END;
+
+
+
+BEGIN;
+INSERT INTO products VALUES 
+(
+	'4602441014019',
+  	'EAN13',
+  	'908bfa28-cd79-4a0f-a1a0-7f900d04c3bd'::uuid,
+  	'Газированный напиток Напитки из Черноголовки Лимонад оригинальный 0,5 л'::varchar,
+  	'Особенностью рецептуры Лимонада является сбалансированный состав сладких и кислых компонентов, созданный на основе натуральных цитрусовых настоев. В нем и аромат цитрусовых цветов, и чай с лимоном и много-много светлого, и предвкушение чего-то хорошего, и капля беззаботности, безоблачной радости, которые оставляет легкое и приятное послевкусие.',
+  	0,
+  	0,
+  	11.5,
+  	45,
+  	$${"version" : "0.0.1", "composition" : "Вода подготовленная, сахар, сок яблока концентрированный, регуляторы кислотности: кислота лимонная и цитрат натрия, ароматизаторы натуральные, стабилизаторы гуммиарабик и Е445, красители: сахарный колер IV (Е150d) и бета-каротин, антиокислитель кислота."}$$::jsonb,
+  	'food_and_chem',
+  	'ml',
+  	500,
+  	NULL
+);
+END;
+
+
+
+BEGIN;
+INSERT INTO products VALUES 
+(
+	'4602441014019',
+  	'EAN13',
+  	'c2411f06-37e6-4bac-8c3a-bbc532fe6c39'::uuid,
+  	'Черноголовка Лимонад 0,5 л'::varchar,
+  	NULL,
+  	0,
+  	0,
+  	11.5,
+  	45,
+  	$${"version" : "0.0.1", "composition" : "Вода подготовленная, сахар, сок яблока концентрированный, регуляторы кислотности: кислота лимонная и цитрат натрия, ароматизаторы натуральные, стабилизаторы гуммиарабик и Е445, красители: сахарный колер IV (Е150d) и бета-каротин, антиокислитель кислота."}$$::jsonb,
+  	'food_and_chem',
+  	'ml',
+  	500,
+  	NULL
+);
+END;
+
+
+
+BEGIN;
+INSERT INTO purchases(user_id, shop_name, modify_date) VALUES
+	(
+      '908bfa28-cd79-4a0f-a1a0-7f900d04c3bd'::uuid,
+      'Ашан',
+      now()::date
+    );
+END;
+
+BEGIN;
+INSERT INTO purchases(user_id, shop_name, modify_date) VALUES
+	(
+      '908bfa28-cd79-4a0f-a1a0-7f900d04c3bd'::uuid,
+      'Атак',
+      now()::date
+    );
+END;
+
+BEGIN;
+INSERT INTO purchases(user_id, shop_name, modify_date) VALUES
+	(
+      '908bfa28-cd79-4a0f-a1a0-7f900d04c3bd'::uuid,
+      'Пятерочка',
+      now()::date
+    );
+END;
+
+BEGIN;
+INSERT INTO consumption(user_id, type, modify_date) VALUES
+	(
+      '908bfa28-cd79-4a0f-a1a0-7f900d04c3bd'::uuid,
+      'purpose',
+      now()::date
+    );
+END;
+
+BEGIN;
+  INSERT INTO 
+    consumption_detail (
+      consumption_id, 
+      barcode_code,
+      barcode_kind,
+      cost,
+      currency,
+      quantity
+    ) 
+  VALUES( 
+    '70d273d2-ce04-4ca8-8af4-83b20c0ae32f'::uuid, 
+    '4602441014019',
+    'EAN13',
+    100,
+    'RUB',
+    2
+  );
+END;
+
+
+
+
+
+BEGIN;
+  INSERT INTO 
+    purchases_detail (
+      purchase_id, 
+      barcode_code,
+      barcode_kind,
+      price,
+      currency,
+      quantity
+    ) 
+  VALUES( 
+    '8a669d55-0127-4039-8dbd-181a52f347f3'::uuid, 
+    '4602441014019',
+    'EAN13',
+    100,
+    'RUB',
+    6
+  );
+END;
+
+
+BEGIN;
+  INSERT INTO 
+    purchases_detail (
+      purchase_id, 
+      barcode_code,
+      barcode_kind,
+      price,
+      currency,
+      quantity
+    ) 
+  VALUES( 
+    'c3497b27-4a8a-4f56-b12d-f4d1f215c9a9'::uuid, 
+    '54491472',
+    'EAN8',
+    1000,
+    'RUB',
+    20
+  );
+END;
